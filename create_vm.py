@@ -6,6 +6,7 @@ import urllib2
 import urllib
 import json
 import random
+import time
 
 def curl_keystone():
     url='http://controller:5000/v2.0/tokens'
@@ -90,6 +91,24 @@ def get_network_id():
         network_id.append(ID)
     return network_id
 
+def get_floating_ip():
+    ftoken = curl_keystone()
+    url = 'http://controller:9696/v2.0/floatingips'
+    values = {
+    "floatingip": {
+        "floating_network_id": "9f583fd4-7a23-477e-9ff3-b7098d405665"
+        }
+    }
+    data = json.dumps(values)
+    headers = {'content-type':'application/json','accept':'application/json'}
+    req = urllib2.Request(url,data = data,headers = headers)
+    req.add_header('X-Auth-Token',ftoken)
+    response = urllib2.urlopen(req)
+    data = response.read()
+    ddata = json.loads(data)
+    floating_ip = ddata['floatingip']['floating_ip_address']
+    return floating_ip
+
 def create_vm():
     ctoken = curl_keystone()
     url = 'http://controller:8774/v2.1/servers'
@@ -99,7 +118,7 @@ def create_vm():
     net_id = random.sample(network,1)[0]
     values={
     "server": {
-        "name":"python",
+        "name":"pp",
         "imageRef":image,
         "flavorRef":flavor,
         "networks":[{"uuid":net_id}]
@@ -111,6 +130,24 @@ def create_vm():
     req.add_header('X-Auth-Token',ctoken) 
     response = urllib2.urlopen(req)
 
+def associate_fip():
+    atoken = curl_keystone()
+    vm_id = get_nova_id()[0]
+    f_ip = get_floating_ip()
+    url = 'http://controller:8774/v2.1/servers/' + vm_id + '/action'
+    values = {
+    "addFloatingIp": {
+        "address": f_ip
+        }
+    } 
+    data = json.dumps(values)
+    headers = {'content-type':'application/json','accept':'application/json'}
+    req = urllib2.Request(url,data = data,headers = headers)
+    req.add_header('X-Auth-Token',atoken)
+    response = urllib2.urlopen(req)
+
+
 if __name__ == "__main__":
     create_vm()
-   # print (curl_keystone()) 
+    time.sleep(60)
+    associate_fip()
