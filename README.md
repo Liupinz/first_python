@@ -1,3 +1,3 @@
-# My firt pyton project
+# openstack pyton project
 ## OPENSTACK
-> This python is to show some messages for openstack,and can create openstack vms.
+> openstack python scripts
